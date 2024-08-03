@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fetal Health Classification</title>
+<link href="https://fonts.googleapis.com/css2?family=New+Tegomin&family=Orelega+One&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orelega+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js'></script>
+<link href='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css' rel='stylesheet' />
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+    body {
+        font-family: 'Orelega One', cursive;
+        margin: 0;
+        font-size: 1.2rem;
+        color: #333;
+        line-height: 1.6;
+        background-image: url("https://i.ibb.co/Yc7ggTr/pregnant-woman-baby-bump-sitting-down-uwu8ykihqmctbd5c.jpg");
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+       background-size: cover; 
+    }
+    h1 {
+        font-weight: 1500;
+        line-height: 1.2;
+        font-family: 'TImes New Roman', serif;
+        text-align: left;
+        margin-bottom: 2rem;
+        color: #bb3014;
+        font-size: 50px;
+    }
+    label {
+        display: block;
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+        color: #555;
+    }
+    input[type="text"],
+    button {
+        width: 100%;
+        padding: 0.8rem;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 0.25rem;
+        background-color: #fff;
+        transition: border-color 0.3s ease-in-out;
+    }
+    input[type="text"]:focus,
+    button:focus {
+        outline: none;
+        border-color: #bb3014;
+        box-shadow: 0 0 5px rgba(187, 48, 20, 0.5);
+    }
+    button {
+        background-color: #bb3014;
+        color: #fff;
+        cursor: pointer;
+    }
+    button:hover {
+        background-color: #92240c;
+    }
+    .container {
+    max-width: 720px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 80vh; /* Set the height to cover most of the screen */
+}
+
+.result {
+    margin-top: auto; /* Move the classification result to the bottom */
+    text-align: center;
+}
+
+    .error {
+        color: #ff0000;
+        text-align: center;
+        margin-top: 1rem;
+    }
+    .Normal {
+        /*background-color: #9eff9e; *//* Light green for Normal classification */
+        mix-blend-mode: multiply;
+        color: green;
+    }
+
+    .Suspect {
+       /** background-color: #ffff80;  Yellow for Suspect classification
+       **/
+      /* background-color: #ffff80; */
+       mix-blend-mode: multiply;
+        
+      }
+
+    .Pathological {
+      /*  background-color: #ff8080; */
+         /* Light red for Pathological classification */
+         mix-blend-mode: multiply;
+         color: red;
+    }
+#map  {height:  400px;}
+p {
+  font-size: 30px;
+}
+h2 {
+  font-size: 38px;
+  font-weight: 1000;
+}
+</style>
+</head>
+<body class="{{ prediction_text | lower }}">
+    <div class="container">
+        {% if Error %}
+        <div class="alert alert-danger">{{ Error }}</div>
+        {% else %}
+        <h1>Recommendation</h1>
+        <h2>Fetal Health is identified as {{ prediction_text }}</h2>
+        
+        <!-- Show additional text based on the classification -->
+        {% if prediction_text == "Normal" %}
+        <p class="Normal">Great news! Your CTG readings indicate that your baby's heart rate and uterine contractions are within normal ranges. This suggests a healthy pregnancy and reassuring well-being for both you and your baby. Keep up with your regular prenatal care and if you have any further questions or concerns, don't hesitate to reach out to your healthcare provider.</p>
+        {% elif prediction_text == "Suspect" %}
+        <p class="Suspect">Hello, it's important to inform you that the CTG readings have flagged a suspect condition. While this doesn't necessarily mean an immediate concern, it's crucial to take action promptly. Please contact your healthcare provider or head to the hospital for further evaluation. They will assess the situation and ensure the well-being of both you and your baby.</p>
+        {% elif prediction_text == "Pathological" %}
+        <p class="Pathological">Urgent attention required: The CTG readings have indicated a pathological condition, indicating potential complications with your baby's heart rate or uterine contractions. Please do not delay seeking medical assistance. Contact your healthcare provider immediately or proceed to the nearest hospital for further evaluation and intervention.</p>
+        <button onclick="redirectToNearbyHospitals()">Find Nearby Hospitals</button>
+        <!-- <div id="map"></div> -->
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+      function redirectToNearbyHospitals() {
+          if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(showNearbyHospitals, showError);
+          } else {
+              alert("Geolocation is not supported by this browser.");
+          }
+      }
+
+      function showNearbyHospitals(position) {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          const googleMapsUrl = 'https://www.google.com/maps/search/hospitals/@${latitude},${longitude},12z';
+          // Open a new window or tab with the Google Maps URL
+          window.open(googleMapsUrl, '_blank');
+      }
+
+      function showError(error) {
+          switch (error.code) {
+              case error.PERMISSION_DENIED:
+                  alert("User denied the request for Geolocation.");
+                  break;
+              case error.POSITION_UNAVAILABLE:
+                  alert("Location information is unavailable.");
+                  break;
+              case error.TIMEOUT:
+                  alert("The request to get user location timed out.");
+                  break;
+              case error.UNKNOWN_ERROR:
+                  alert("An unknown error occurred.");
+                  break;
+          }
+      }
+  </script>
+  </body>
+</html>
